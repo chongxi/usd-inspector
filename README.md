@@ -12,13 +12,14 @@ A browser-only inspector for OpenUSD robot assets, live at **https://chongxi.git
 
 ## Share links
 
-- `?sample=kakun`, `?sample=kakun-full`, `?sample=panthera-ht`, `?sample=mini-pi-plus`, `?sample=mini-pi-plus-bm`, `?sample=mini-pi`, `?sample=hi`, `?sample=openarm-v2` open a hosted robot
+- `?sample=worker-pi`, `?sample=kakun`, `?sample=kakun-full`, `?sample=panthera-ht`, `?sample=mini-pi-plus`, `?sample=mini-pi-plus-bm`, `?sample=mini-pi`, `?sample=hi`, `?sample=openarm-v2` open a hosted robot
 - `?asset=Isaac/Robots/FrankaRobotics/FrankaPanda/franka.usd` opens a path on the Isaac Sim 5.1 server; a full `https://` URL also works if that server allows cross-origin requests
 
 ## Hosted samples (`samples/`)
 
 | File | What it is |
 | --- | --- |
+| `worker_pi.usdc.gz` | **Worker Pi**, our variant of the Mini Pi+ Pro with 25 actuated joints. Kakun's yellow parallel gripper hangs under each elbow link and points at the ground. It is coaxial with the HTDW-4438 motor inside that link (the motor that turned the wrist on the Pi+ Pro), which now opens and closes the gripper; the gripper rails run front/back. The wrist joint and the Pi gripper are removed, 2 motors fewer in total. Gripper geometry, masses and finger drive (kp 3000 N/m, kd 100 N·s/m, 500 N, 0–40 mm per finger; second finger is a mimic joint) come from `kakun (1).usd`. The rest is as in `mini_pi_plus_pro.usdc`. Built as MJCF with `make_worker_pi.py`, then converted with `mjcf_to_usd.py`. In MuJoCo it stands, opens both grippers and holds a 4 cm, 100 g cube while the arm swings. |
 | `kakun_full.usd.gz.001`, `.002` | Kakun, the original USD, gzipped and split in two to fit the web uploader (join them, then gunzip) |
 | `kakun_preview.usdc.gz` | Kakun with meshes simplified to at most 0.2 mm error; everything else unchanged |
 | `openarm_v2_bimanual.usdc.gz` | OpenArm v2.0 (default bimanual preset, pinch grippers), converted from the URDF in [enactic/openarm_description](https://github.com/enactic/openarm_description) at commit `14ff67b`. Not an official Enactic or NVIDIA asset. Visual meshes simplified to at most 0.15 mm, collision meshes to 0.5 mm (convex hulls). Joint axes are mapped to local +X; the original axis is kept in `urdf:axis`. |
@@ -28,7 +29,7 @@ A browser-only inspector for OpenUSD robot assets, live at **https://chongxi.git
 | `mini_pi_12dof.usdc.gz` | HighTorque Mini Pi (12 DOF), same repo (`pi_12dof`). Authored joint state = the training stance listed in that repo's README. |
 | `hi_25dof.usdc.gz` | HighTorque Hi (25 DOF), same repo (`hi_25dof`). |
 
-The OpenArm, Panthera-HT, Mini Pi and Hi files were converted from the manufacturers' URDFs with `urdf_to_usd.py`, and Mini Pi+ Pro from MJCF with `mjcf_to_usd.py`, which compiles the model with MuJoCo 3 first. Both scripts were written for this site; none of these files is an official asset. Visual meshes are simplified to at most 0.25 mm (HighTorque) or 0.15 mm (OpenArm), collision meshes to 0.5 mm as convex hulls; URDF box/cylinder/sphere collisions stay analytic. Joint axes are mapped to local +X (the original is kept in `urdf:axis`); mimic joints use `PhysxMimicJointAPI:rotX`. Where the source has no gains, drives carry only the URDF effort limit. In every converted robot, link poses match the source's forward kinematics (URDF, or MuJoCo for the MJCF) to within 1e-7 m over random joint configurations. MJCF joint terms are also kept verbatim as `mjc:damping`, `mjc:frictionloss`, `mjc:armature` and `mjc:actuatorfrcrange`.
+The OpenArm, Panthera-HT, Mini Pi and Hi files were converted from the manufacturers' URDFs with `urdf_to_usd.py`, and Mini Pi+ Pro and Worker Pi from MJCF with `mjcf_to_usd.py`, which compiles the model with MuJoCo 3 first. Both scripts were written for this site; none of these files is an official asset. Visual meshes are simplified to at most 0.25 mm (HighTorque) or 0.15 mm (OpenArm), collision meshes to 0.5 mm as convex hulls; URDF box/cylinder/sphere collisions stay analytic. Joint axes are mapped to local +X (the original is kept in `urdf:axis`); mimic joints use `PhysxMimicJointAPI:rotX`. Where the source has no gains, drives carry only the URDF effort limit. In every converted robot, link poses match the source's forward kinematics (URDF, or MuJoCo for the MJCF) to within 1e-7 m over random joint configurations. MJCF joint terms are also kept verbatim as `mjc:damping`, `mjc:frictionloss`, `mjc:armature` and `mjc:actuatorfrcrange`.
 
 ## Download formats
 
