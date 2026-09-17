@@ -4,6 +4,8 @@ A browser-only inspector for OpenUSD robot assets, live at **https://chongxi.git
 
 - Stage tree with every prim, its attributes, relationships and metadata
 - Joint sliders and presets, driven by the UsdPhysics joint frames (mimic joints follow their leader)
+- Joints grouped by body part for any robot: head, waist / torso, left / right arm, hand or gripper (with fingers for dexterous hands), legs (front / rear for quadrupeds) and base / wheels. Groups come from joint and link names plus the kinematic tree, with the robot's geometry as a fallback for unnamed chains. Each group can be collapsed, highlighted in the viewport or set to zero
+- Selecting a part (in the viewport or the stage tree) lists the joint above it and the joints below it, including the joint that moves it through fixed joints. Clicking a joint opens its slider in the Joints tab
 - Visual, collision, frame, centre-of-mass and camera layers; X-ray, wireframe, section plane and point-to-point measuring
 - Automatic checks: articulation root, joint-frame consistency, drives, mass, collisions, metadata, mesh budget
 - Robot library streamed from NVIDIA's Isaac Sim 5.1 asset server (the Isaac Lab robot list) and from `enactic/openarm_isaac_lab`
