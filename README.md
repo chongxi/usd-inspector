@@ -16,6 +16,7 @@ A browser-only inspector for OpenUSD robot assets, live at **https://chongxi.git
 - Visual, collision, frame, centre-of-mass and camera layers; X-ray, wireframe, section plane and point-to-point measuring
 - Automatic checks: articulation root, joint-frame consistency, drives, mass, collisions, metadata, mesh budget
 - Robot library streamed from NVIDIA's Isaac Sim 5.1 asset server (the Isaac Lab robot list) and from `enactic/openarm_isaac_lab`
+- **Environment workspace**: load the complete Astera office USDZ alongside the selected robot. Swap library robots without losing the office or placement; place arms on tables, use the existing joint/Reach/Motion controls, or drive wheeled robots with W/A/S/D or the on-screen buttons.
 - Open your own `.usd` / `.usda` / `.usdc` / `.usdz`, or a whole folder so references, payloads and sublayers resolve. Files are read in your browser and never uploaded.
 - **Download** any loaded robot as USD (the layers it loaded, zipped with their folder layout when there is more than one), URDF (+ STL meshes) or MuJoCo XML (robot + `scene.xml` + STL meshes, position actuators from the drives, a `home` keyframe from the joint state)
 
@@ -23,11 +24,48 @@ A browser-only inspector for OpenUSD robot assets, live at **https://chongxi.git
 
 - `?sample=worker-pi`, `?sample=kakun`, `?sample=kakun-full`, `?sample=panthera-ht`, `?sample=mini-pi-plus`, `?sample=mini-pi-plus-bm`, `?sample=mini-pi`, `?sample=hi`, `?sample=openarm-v2` open a hosted robot
 - `?asset=Isaac/Robots/FrankaRobotics/FrankaPanda/franka.usd` opens a path on the Isaac Sim 5.1 server; a full `https://` URL also works if that server allows cross-origin requests
+- [`?sample=kakun&environment=astera`](https://chongxi.github.io/usd-inspector/?sample=kakun&environment=astera) opens Kakun in the Astera office. Replace `kakun` with any hosted sample, or combine `environment=astera` with an `asset` URL.
+- Optional `pose=x,y,z,heading` uses metres and heading in degrees, in a Z-up, X-forward world. `z` is the support surface height: the robot's lowest authored visual point is placed there. Astera defaults to `2.678,4.525414,0,0`.
+- `environment=https://…/scene.usdz` loads another environment from a server allowing cross-origin requests. **Copy link** includes the environment and robot placement. Local files are never uploaded; their sessions cannot be shared by URL.
+
+## Place and control a robot in Astera
+
+1. Open **Environment → Astera office**, or use **Open USDZ…** inside that panel for a local environment. The top bar's **Open file…** continues to replace the robot.
+2. Choose a robot from **Robot library**. All robot types can be placed; switching the robot keeps the environment and the selected location.
+3. Enter X, Y, support height and heading, or choose **Click to place** and click an upward-facing floor/tabletop. **Follow robot** recentres the camera; **View environment** shows the full office. The ceiling is hidden initially for interior inspection and can be shown without changing the asset.
+4. For a wheeled base, enable **Keyboard drive** and hold W/A/S/D or the arrow keys, or hold the on-screen direction buttons. Release, press Stop/Escape, close the panel, or leave the page to stop. Editing a position or joint field does not drive the robot. Other robots use placement and the existing Joints, Reach and Motion controls.
+
+**Download environment** in the Environment panel offers **USDZ · single file** and **USD + textures · ZIP**. Before loading a scene these download Astera; after loading they download that environment. Both exclude the selected robot and preserve the original environment, including its physics and appliance joints. The ZIP contains the package's original USD and all embedded files with their paths preserved—extract the whole ZIP before opening the USD. Ceiling visibility and robot movement do not change either download. The top-bar **Download** button remains the robot exporter.
+
+[Download the standalone Astera USDZ directly](samples/environments/astera_office_2f.usdz).
+
+This is a browser kinematic preview. Environment geometry is static at its authored pose: appliance doors, drawers and loose objects are displayed but are not interactive here. There is no environment collision response, physical grasping, gravity, or connection to Isaac Lab. Existing Reach checks concern the robot and its support plane; they do not plan around office furniture. The USDZ retains its original joints and physics for use in a simulator. Robot downloads and motion exports still refer to the selected robot, not a merged robot/environment stage.
+
+Environment loading uses the USD default-prim subtree, including visible collision-enabled geometry, metres-per-unit, up-axis and embedded textures. Identical opaque meshes are instanced to reduce draw calls. Materials use the inspector's three.js lighting; authored Isaac/MDL lighting is not reproduced exactly. The bundled USD reader supports a subset of OpenUSD. For reliable local sharing, use a self-contained USDZ; a loose local USD with external files requires packaging first.
+
+## Run locally and test
+
+```sh
+python3 -m http.server 8088
+# Open http://localhost:8088/?sample=kakun&environment=astera
+```
+
+No application build step or simulation server is required. Serve the repository root, including `src/` and `samples/`; copying only `index.html` is insufficient. three.js is fetched from jsDelivr as before.
+
+```sh
+npm ci
+npm test
+npx playwright install chromium  # unnecessary if Google Chrome is already installed
+npm run test:browser
+```
+
+The browser test serves its own local site, opens the real Astera USDZ, checks textures, driving/stopping, placement, robot replacement, local file loading and failure recovery. Set `CHROMIUM_EXECUTABLE` for a custom browser path or `EVIDENCE_DIR` for screenshots and the JSON report; the default output is ignored `results/environment-browser/`.
 
 ## Hosted samples (`samples/`)
 
 | File | What it is |
 | --- | --- |
+| `environments/astera_office_2f.usdz` | Astera office 2F, the standalone 2026-09-18 export from `Kakun_Curobov2`, with furniture/appliances and 17 embedded textures; no robot or external file dependencies. See [asset provenance](samples/environments/README.md). |
 | `worker_pi.usdc.gz` | **Worker Pi**, our variant of the Mini Pi+ Pro with 27 actuated joints. Each arm keeps the Pi's wrist motor (HTDW-4438), so the gripper rolls about the wrist axis (-2.8 … 3.1 rad); Kakun's yellow rail gripper — with its own motor, as Kakun ships it — hangs under the wrist, approach pointing at the ground and the rails running front/back. The Pi's own gripper is removed, together with the lower part of the wrist link that carried its fixed jaw (cut at z = -44 mm; the kept piece is 66.0% of the link's volume, 0.189 kg by uniform density). Kakun's palm with its motor is 0.240 kg from `kakun (1).usd`, as are the finger drive (kp 3000 N/m, kd 100 N·s/m, 500 N, 0–40 mm per finger; the second finger is a mimic joint) and the finger inertias. The rest is as in `mini_pi_plus_pro.usdc`. Built as MJCF with `make_worker_pi.py`, then converted with `mjcf_to_usd.py`. In MuJoCo it stands (0.2° tilt), opens both grippers clear of the legs and floor, holds a 4 cm, 100 g cube while the arm swings, and the wrist rolls the loaded gripper. With the arm hanging at the side, rolling the gripper ±90° runs the 158 mm rails into the thigh — real interference, so roll with the arm out. |
 | `kakun_full.usd.gz.001`, `.002` | Kakun, the original USD, gzipped and split in two to fit the web uploader (join them, then gunzip) |
 | `kakun_preview.usdc.gz` | Kakun with meshes simplified to at most 0.2 mm error; everything else unchanged |
