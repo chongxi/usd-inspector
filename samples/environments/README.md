@@ -3,7 +3,7 @@
 `astera_office_2f.usdz` is the standalone office package supplied by the repository owner for browser inspection. It contains the scene and its objects, without Kakun.
 
 - Source project: `Kakun_Curobov2`
-- Source scene: `.environments/astera_office_2f/astera_office_2f.usdz`
+- Source scene: `environments/astera_office_2f/astera_office_2f.usdz`
 - Size: 28,868,927 bytes
 - SHA-256: `73cc87c4fbbee7cce173621b4f5d0cd4c51d23bc6da6012d4f3d28f41dfba04d`
 - Contents: one composed binary USD and 17 textures, with all asset paths contained in the package.
