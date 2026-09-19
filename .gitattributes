@@ -1,0 +1,2 @@
+# Generated dependencies preserve upstream shader source strings verbatim.
+src/vendor/* linguist-vendored -whitespace

@@ -26,7 +26,8 @@ const base = `http://127.0.0.1:${server.address().port}`;
 const executablePath = process.env.CHROMIUM_EXECUTABLE
   || (existsSync('/usr/bin/google-chrome') ? '/usr/bin/google-chrome' : undefined);
 const browser = await chromium.launch({ executablePath, headless: true,
-  args: ['--no-sandbox', '--enable-webgl', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+  args: ['--no-sandbox', '--enable-webgl', ...(process.env.CHROMIUM_GPU
+    ? ['--use-angle=gl', '--ignore-gpu-blocklist'] : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'])] });
 const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
 page.setDefaultTimeout(60000);
 const errors = [], report = { checks: [] };
@@ -39,6 +40,9 @@ const robotPose = () => page.evaluate(() => ({
 }));
 const check = message => { report.checks.push(message); console.log('PASS', message); };
 try {
+  // Functional controls are checked in the responsive rendering mode. The full
+  // scene's progressive path tracing is exercised by the separate visual test.
+  await page.addInitScript(() => localStorage.setItem('environmentQuality', 'interactive'));
   await page.goto(`${base}/?sample=kakun&environment=astera&pose=6,-4.3,0,90`, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => window.__environmentDebug?.().environment
     && window.__environmentDebug?.().robot?.includes('kakun'));
@@ -52,6 +56,19 @@ try {
   assert.equal(initial.wheelCount, 2);
   report.initial = initial;
   check('Astera USDZ and Kakun load together with all 17 textures and share-link placement');
+  assert.deepEqual(await page.locator('#inspector [data-pane]').evaluateAll(tabs => tabs.map(t => t.dataset.pane)),
+    ['props', 'joints', 'reach', 'env', 'checks']);
+  assert.equal(await page.locator('#inspector #pane-env').isVisible(), true);
+  assert.equal(await page.locator('#pane-env').evaluate(p => getComputedStyle(p).position), 'static');
+  assert.equal(await page.locator('#envClose').count(), 0);
+  await page.locator('#driveEnable').check();
+  await page.keyboard.down('w');
+  await page.locator('[data-pane="props"]').click();
+  assert.equal((await debug()).driving, false);
+  assert.equal(await page.locator('#driveEnable').isChecked(), false);
+  await page.keyboard.up('w');
+  await page.locator('#envBtn').click();
+  check('Env is docked in the Inspector; leaving the tab stops driving; topbar shortcut opens it');
   await page.screenshot({ path: path.join(evidence, 'kakun-in-astera.png') });
 
   for (const [button, filename] of [['#envDownloadUsdz', 'astera_office_2f.usdz'], ['#envDownloadUsd', 'astera_office_2f_usd.zip']]) {
@@ -157,6 +174,7 @@ with zipfile.ZipFile(sys.argv[1]) as original, zipfile.ZipFile(sys.argv[2]) as d
   check('Motion keyframes and Reach UI still work after robot replacement');
   await page.locator('[data-mode="reach"]').click();
 
+  await page.locator('[data-pane="env"]').click();
   await page.locator('#envRemove').click();
   assert.equal((await debug()).environment, null);
   assert.ok((await debug()).robot.includes('worker'));

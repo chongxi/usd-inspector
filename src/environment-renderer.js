@@ -87,9 +87,9 @@ export function batchEnvironment(THREE, source) {
     mesh.userData.ceiling = ceiling;
     mesh.userData.members = members.map(member => member.path);
     mesh.receiveShadow = true;
-    // The existing key light shadows the robot. Thousands of building parts
-    // should not produce another full-building shadow render on every input.
-    mesh.castShadow = false;
+    const materials = Array.isArray(material) ? material : [material];
+    mesh.castShadow = materials.some(m => !m.transparent && (m.emissiveIntensity || 0)
+      * ((m.emissive?.r || 0) + (m.emissive?.g || 0) + (m.emissive?.b || 0)) < 0.01);
     root.add(mesh);
     triangles += ((geometry.index?.count || geometry.attributes.position.count) / 3) * members.length;
   }

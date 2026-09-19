@@ -7,18 +7,18 @@ const DEFAULT_SPAWN = { x: 2.678, y: 4.525414, z: 0, yaw: 0 };
 /** Independent environment and robot placement. Browser kinematics, no physics host. */
 export function createEnvironmentWorkspace(api) {
   const { THREE, scene, camera, controls, canvas, requestRender, getRobot } = api;
-  const panel = document.createElement('section');
-  panel.className = 'float workspace';
-  panel.hidden = true;
+  const panel = document.querySelector('#pane-env');
+  panel.classList.add('workspace');
   panel.setAttribute('aria-label', 'Environment and robot placement');
   panel.innerHTML = `
-    <div class="workspace-head"><h2>Environment</h2><button id="envClose" aria-label="Close environment panel">×</button></div>
     <div class="workspace-actions"><button class="btn primary" id="envAstera">Astera office · 28.8 MB</button><button class="btn" id="envOpen">Open USDZ…</button></div>
     <input id="envFile" type="file" accept=".usdz,.usd,.usda,.usdc" hidden>
     <div class="workspace-url"><input class="search" id="envUrl" type="url" placeholder="Or an environment URL" aria-label="Environment URL"><button class="btn" id="envLoadUrl">Load</button></div>
     <p class="workspace-status" id="envStatus" role="status" aria-live="polite">No environment. Choose Astera or open your own USDZ.</p>
     <div class="workspace-actions"><button class="btn sm" id="envOverview" disabled>View environment</button><button class="btn sm" id="envRemove" disabled>Remove environment</button></div>
     <label class="workspace-check"><input type="checkbox" id="envCeiling"> Show ceiling and overhead lights</label>
+    <label class="workspace-quality">Rendering <select id="envQuality"><option value="realistic">Realistic · refines when still</option><option value="interactive">Interactive · faster</option></select></label>
+    <p id="envRenderStatus" role="status">Realistic lighting refines after you stop moving.</p>
     <fieldset><legend>Download environment · no robot</legend>
       <div class="workspace-actions"><button class="btn sm" id="envDownloadUsdz">USDZ · single file</button><button class="btn sm" id="envDownloadUsd">USD + textures · ZIP</button></div>
       <p id="envDownloadNote" role="status">Astera office. Downloads also work before loading the scene.</p>
@@ -44,7 +44,6 @@ export function createEnvironmentWorkspace(api) {
       <p id="driveNote">Select a wheeled robot to drive. Other robots can be placed and controlled with Joints, Reach or Motion.</p>
     </fieldset>
     <p>Browser motion preview. Environment contacts and grasping are not simulated.</p>`;
-  document.querySelector('#stage').appendChild(panel);
   const badge = document.createElement('div');
   badge.className = 'workspace-badge';
   badge.hidden = true;
@@ -208,6 +207,7 @@ export function createEnvironmentWorkspace(api) {
   function showCeiling() {
     if (!environment) return;
     for (const mesh of environment.root.children) mesh.visible = !mesh.userData.ceiling || $('#envCeiling').checked;
+    api.lighting.refresh();
     requestRender();
   }
   function removeEnvironment() {
@@ -215,6 +215,7 @@ export function createEnvironmentWorkspace(api) {
     stop();
     setPlacing(false);
     if (environment) disposeEnvironment(environment.root);
+    api.lighting.clear();
     environment = null;
     environmentKey = null;
     restoring = false;
@@ -229,7 +230,7 @@ export function createEnvironmentWorkspace(api) {
   async function loadEnvironment(source, name, key = null) {
     const token = ++loadToken;
     status(`Loading ${name}…`);
-    panel.hidden = false;
+    api.openEnvironment();
     try {
       const loaded = await api.readEnvironment(source, text => status(text), () => token !== loadToken);
       if (token !== loadToken) { disposeEnvironment(loaded); return; }
@@ -241,6 +242,7 @@ export function createEnvironmentWorkspace(api) {
       environment = { ...candidate, name, warnings: loaded.userData.warnings || [],
         textureCount: loaded.userData.textureCount || 0, download: loaded.userData.download };
       scene.add(environment.root);
+      api.lighting.setEnvironment(environment.root, loaded.userData.lights || []);
       controls.maxDistance = Math.max(100, new THREE.Box3().setFromObject(environment.root)
         .getSize(new THREE.Vector3()).length() * 4);
       environmentKey = key;
@@ -331,7 +333,12 @@ export function createEnvironmentWorkspace(api) {
   $('#envDownloadUsdz').onclick = () => downloadEnvironment('original');
   $('#envDownloadUsd').onclick = () => downloadEnvironment('usd');
   $('#envCeiling').onchange = showCeiling;
-  $('#envClose').onclick = () => { panel.hidden = true; stop(); $('#driveEnable').checked = false; setPlacing(false); };
+  try { if (localStorage.getItem('environmentQuality') === 'interactive') $('#envQuality').value = 'interactive'; } catch {}
+  api.lighting.setQuality($('#envQuality').value);
+  $('#envQuality').onchange = () => {
+    api.lighting.setQuality($('#envQuality').value);
+    try { localStorage.setItem('environmentQuality', $('#envQuality').value); } catch {}
+  };
   $('#envOverview').onclick = () => {
     const box = new THREE.Box3().setFromObject(environment.root);
     const centre = box.getCenter(new THREE.Vector3());
@@ -393,10 +400,10 @@ export function createEnvironmentWorkspace(api) {
   addEventListener('keyup', event => { held.delete(keyMap[event.key.toLowerCase()]); if (!held.size) stop(); });
   addEventListener('blur', stop);
   document.addEventListener('visibilitychange', () => { if (document.hidden) stop(); });
-  document.querySelector('#envBtn').onclick = () => {
-    panel.hidden = !panel.hidden;
-    if (panel.hidden) { stop(); $('#driveEnable').checked = false; setPlacing(false); }
-  };
+  document.querySelector('#envBtn').onclick = () => api.openEnvironment();
+  new MutationObserver(() => {
+    if (document.querySelector('#inspector').hidden) { stop(); $('#driveEnable').checked = false; setPlacing(false); }
+  }).observe(document.querySelector('#inspector'), { attributes: true, attributeFilter: ['hidden'] });
   document.querySelector('#shareBtn').addEventListener('click', () => {
     readCurrentPlacement();
     updateLink();
@@ -411,6 +418,7 @@ export function createEnvironmentWorkspace(api) {
   if (initialEnvironment === 'astera') $('#envAstera').click();
   else if (initialEnvironment) { $('#envUrl').value = initialEnvironment; $('#envLoadUrl').click(); }
   return { robotChanged, beforeRobotChange: () => { stop(); readCurrentPlacement(); },
+    tabChanged: tab => { if (tab !== 'env') { stop(); $('#driveEnable').checked = false; setPlacing(false); } },
     hasEnvironment: () => !!environment, groundZ: () => environment && placement ? placement.z : undefined,
     focus, debug: () => ({ environment: environment ? { name: environment.name,
       meshes: environment.originalMeshes, drawMeshes: environment.drawMeshes,

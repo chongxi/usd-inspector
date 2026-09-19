@@ -1,3 +1,5 @@
+import { usdLightColor } from './usd-light-color.js';
+
 /** Build a complete environment at its authored pose, independently of robot articulation discovery. */
 export function createEnvironmentReader(THREE, runtime) {
   return async function readEnvironment(source, progress, cancelled) {
@@ -54,6 +56,7 @@ export function createEnvironmentReader(THREE, runtime) {
     }
     const defaultPath = stage.GetDefaultPrim()?.GetPath();
     const prims = stage.Traverse();
+    const lights = [];
     let count = 0;
     for (const prim of prims) {
       const path = prim.GetPath();
@@ -63,7 +66,10 @@ export function createEnvironmentReader(THREE, runtime) {
         if (parent.GetAttribute('visibility').Get() === 'invisible'
           || ['guide', 'proxy'].includes(parent.GetAttribute('purpose').Get())) { hidden = true; break; }
       }
-      if (hidden || !runtime.isGeometry(prim)) continue;
+      if (hidden) continue;
+      const light = runtime.getLight?.(prim);
+      if (light) lights.push({ ...light, color: usdLightColor(prim), matrix: runtime.worldTransform(prim) });
+      if (!runtime.isGeometry(prim)) continue;
       // CollisionAPI does not mean invisible: walls, floors and table surfaces
       // intentionally have both render geometry and a collision shape.
       const object = runtime.createMesh(prim, stage, { textureProvider, onWarn: warn });
@@ -85,6 +91,10 @@ export function createEnvironmentReader(THREE, runtime) {
     for (const texture of textures.values()) delete texture.userData.ready;
     root.userData.warnings = warnings;
     root.userData.textureCount = images.size;
+    root.updateMatrixWorld(true);
+    root.userData.lights = lights.map(light => ({ ...light,
+      matrix: new THREE.Matrix4().multiplyMatrices(root.matrixWorld, new THREE.Matrix4().fromArray(light.matrix)).toArray(),
+      unitScale: unit }));
     root.userData.download = { bytes: new Uint8Array(bytes), name: typeof source === 'string'
       ? decodeURIComponent(new URL(source).pathname.split('/').pop()) || 'environment.usdz'
       : source.name };

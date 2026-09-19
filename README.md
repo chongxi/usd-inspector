@@ -20,6 +20,19 @@ A browser-only inspector for OpenUSD robot assets, live at **https://chongxi.git
 - Open your own `.usd` / `.usda` / `.usdc` / `.usdz`, or a whole folder so references, payloads and sublayers resolve. Files are read in your browser and never uploaded.
 - **Download** any loaded robot as USD (the layers it loaded, zipped with their folder layout when there is more than one), URDF (+ STL meshes) or MuJoCo XML (robot + `scene.xml` + STL meshes, position actuators from the drives, a `home` keyframe from the joint state)
 
+## Environment rendering
+
+The Inspector tabs are **Properties · Joints · Reach · Env · Checks**. Environment loading, downloads, placement and driving stay in **Env**, without an extra floating panel.
+
+Environment previews use the USD’s authored light positions, shapes and linear RGB/color temperatures, PBR textures, ACES tone mapping, contact occlusion, and shadow-casting geometry. The **Rendering** selector in Env offers:
+
+- **Realistic** (default): moving the camera or robot uses interactive lighting. Once still, a browser path tracer refines reflections, area-light shadows and indirect lighting, with edge-aware denoising. The progress indicator shows convergence. Initial preparation and convergence depend on scene size and GPU. Inspection overlays such as Reach, collision, wireframe and section views use interactive rendering so the tools stay visible.
+- **Interactive**: immediate shadowed rendering, suited to driving and slower devices. The selection is remembered locally. Unsupported path-tracing devices retain interactive rendering.
+
+The same standalone Astera USDZ is used in Isaac Lab and here. This browser renderer does not use Isaac’s RTX renderer or denoiser; lighting and reflection results can differ. Preview settings never change geometry, physics, articulation, or downloaded files.
+
+The vendored path tracer and its same-origin BVH worker can be rebuilt with `npm ci && npm run build:renderer`. Dependencies are pinned and license texts are included under `src/vendor/`.
+
 ## Share links
 
 - `?sample=worker-pi`, `?sample=kakun`, `?sample=kakun-full`, `?sample=panthera-ht`, `?sample=mini-pi-plus`, `?sample=mini-pi-plus-bm`, `?sample=mini-pi`, `?sample=hi`, `?sample=openarm-v2` open a hosted robot
@@ -30,12 +43,12 @@ A browser-only inspector for OpenUSD robot assets, live at **https://chongxi.git
 
 ## Place and control a robot in Astera
 
-1. Open **Environment → Astera office**, or use **Open USDZ…** inside that panel for a local environment. The top bar's **Open file…** continues to replace the robot.
+1. Open the Inspector’s **Env → Astera office** tab (or the top-bar **Environment** shortcut), or use **Open USDZ…** in that tab for a local environment. The top bar's **Open file…** continues to replace the robot.
 2. Choose a robot from **Robot library**. All robot types can be placed; switching the robot keeps the environment and the selected location.
 3. Enter X, Y, support height and heading, or choose **Click to place** and click an upward-facing floor/tabletop. **Follow robot** recentres the camera; **View environment** shows the full office. The ceiling is hidden initially for interior inspection and can be shown without changing the asset.
-4. For a wheeled base, enable **Keyboard drive** and hold W/A/S/D or the arrow keys, or hold the on-screen direction buttons. Release, press Stop/Escape, close the panel, or leave the page to stop. Editing a position or joint field does not drive the robot. Other robots use placement and the existing Joints, Reach and Motion controls.
+4. For a wheeled base, enable **Keyboard drive** and hold W/A/S/D or the arrow keys, or hold the on-screen direction buttons. Release, press Stop/Escape, switch Inspector tabs, hide the Inspector, or leave the page to stop. Editing a position or joint field does not drive the robot. Other robots use placement and the existing Joints, Reach and Motion controls.
 
-**Download environment** in the Environment panel offers **USDZ · single file** and **USD + textures · ZIP**. Before loading a scene these download Astera; after loading they download that environment. Both exclude the selected robot and preserve the original environment, including its physics and appliance joints. The ZIP contains the package's original USD and all embedded files with their paths preserved—extract the whole ZIP before opening the USD. Ceiling visibility and robot movement do not change either download. The top-bar **Download** button remains the robot exporter.
+**Download environment** in the **Env** tab offers **USDZ · single file** and **USD + textures · ZIP**. Before loading a scene these download Astera; after loading they download that environment. Both exclude the selected robot and preserve the original environment, including its physics and appliance joints. The ZIP contains the package's original USD and all embedded files with their paths preserved—extract the whole ZIP before opening the USD. Ceiling visibility and robot movement do not change either download. The top-bar **Download** button remains the robot exporter.
 
 [Download the standalone Astera USDZ directly](samples/environments/astera_office_2f.usdz).
 
@@ -93,5 +106,6 @@ Checked on every hosted sample, a Y-up centimetre test stage and the Isaac Sim O
 ## Notes
 
 - USD is read by [three-usd-robot](https://github.com/neka-nat/three-usd-robot) 0.14.1 (MIT), bundled into `index.html` with two fixes: internal references into sublayers (Isaac Sim 5.x collision layers) and `PhysxMimicJointAPI:rot*` instances on prismatic joints. It is a pragmatic composer, not the full OpenUSD engine.
+- Progressive rendering uses [three-gpu-pathtracer](https://github.com/gkjohnson/three-gpu-pathtracer) and [three-mesh-bvh](https://github.com/gkjohnson/three-mesh-bvh) (MIT).
 - Rendering uses [three.js](https://threejs.org) r186 (MIT) from jsDelivr; gzip decoding uses the browser's DecompressionStream; [fflate](https://github.com/101arrowz/fflate) (MIT) is bundled for `.usdz`.
 - OpenArm meshes are © Enactic, Inc. (Apache-2.0). Panthera-HT description © 2026 HighTorque Robotics (MIT, per `Panthera_HT_ROS2/LICENSE`). Mini Pi and Hi descriptions are from HighTorque Robotics' `robot_urdf`, whose `package.xml` files declare a BSD license (the repo has no separate LICENSE file). The BeyondMimic model comes from `HighTorque-Robotics/Mini-Pi-Plus_BeyondMimic`, whose LICENCE file is the MIT licence text of its Isaac Lab template. The Mini Pi+ Pro model is HighTorque's robot as redistributed in `hanyang9/UMR`, which has no license file; it is used here for inspection only.
