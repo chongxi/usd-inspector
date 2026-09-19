@@ -1,7 +1,7 @@
 import { advanceDrive, wheelIncrement, parsePlacement } from './workspace-math.js';
 import { batchEnvironment, disposeEnvironment } from './environment-renderer.js';
 
-const ASTERA = 'samples/environments/astera_office_2f.usdz';
+const ASTERA = 'samples/environments/astera_office_2f.usdz?v=20260919-railing';
 const DEFAULT_SPAWN = { x: 2.678, y: 4.525414, z: 0, yaw: 0 };
 
 /** Independent environment and robot placement. Browser kinematics, no physics host. */
@@ -11,7 +11,7 @@ export function createEnvironmentWorkspace(api) {
   panel.classList.add('workspace');
   panel.setAttribute('aria-label', 'Environment and robot placement');
   panel.innerHTML = `
-    <div class="workspace-actions"><button class="btn primary" id="envAstera">Astera office · 28.8 MB</button><button class="btn" id="envOpen">Open USDZ…</button></div>
+    <div class="workspace-actions"><button class="btn primary" id="envAstera">Astera office · 28.9 MB</button><button class="btn" id="envOpen">Open USDZ…</button></div>
     <input id="envFile" type="file" accept=".usdz,.usd,.usda,.usdc" hidden>
     <div class="workspace-url"><input class="search" id="envUrl" type="url" placeholder="Or an environment URL" aria-label="Environment URL"><button class="btn" id="envLoadUrl">Load</button></div>
     <p class="workspace-status" id="envStatus" role="status" aria-live="polite">No environment. Choose Astera or open your own USDZ.</p>

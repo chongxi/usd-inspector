@@ -24,7 +24,7 @@ async function converge() {
 }
 try {
   await page.goto(url + '?sample=kakun&environment=astera', {waitUntil: 'domcontentloaded'});
-  await page.waitForFunction(() => window.__environmentDebug?.().environment?.meshes === 13323);
+  await page.waitForFunction(() => window.__environmentDebug?.().environment?.meshes === 13339);
   const initial = await converge();
   assert.equal(initial.authoredLights, 30); assert.equal(initial.ao, true);
   check('Real USDZ lights, shadow rendering, worker BVH and progressive rendering initialize');

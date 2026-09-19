@@ -47,7 +47,7 @@ try {
   await page.waitForFunction(() => window.__environmentDebug?.().environment
     && window.__environmentDebug?.().robot?.includes('kakun'));
   const initial = await debug();
-  assert.equal(initial.environment.meshes, 13323);
+  assert.equal(initial.environment.meshes, 13339);
   assert.equal(initial.environment.textureCount, 17);
   assert.ok(initial.environment.drawMeshes < initial.environment.meshes / 5);
   assert.equal(initial.placement.x, 6);
@@ -179,7 +179,7 @@ with zipfile.ZipFile(sys.argv[1]) as original, zipfile.ZipFile(sys.argv[2]) as d
   assert.equal((await debug()).environment, null);
   assert.ok((await debug()).robot.includes('worker'));
   await page.locator('#envFile').setInputFiles(path.join(root, 'samples/environments/astera_office_2f.usdz'));
-  await page.waitForFunction(() => window.__environmentDebug?.().environment?.meshes === 13323);
+  await page.waitForFunction(() => window.__environmentDebug?.().environment?.meshes === 13339);
   assert.equal((await debug()).environment.textureCount, 17);
   assert.equal(await page.locator('#shareBtn').isVisible(), false);
   check('Local USDZ opens with embedded textures, keeps robot, and never offers a broken share link');
@@ -187,7 +187,7 @@ with zipfile.ZipFile(sys.argv[1]) as original, zipfile.ZipFile(sys.argv[2]) as d
   await page.locator('#envUrl').fill(`${base}/missing-scene.usdz`);
   await page.locator('#envLoadUrl').click();
   await page.waitForFunction(() => document.querySelector('#envStatus').hasAttribute('data-error'));
-  assert.equal((await debug()).environment.meshes, 13323);
+  assert.equal((await debug()).environment.meshes, 13339);
   check('Failed environment loads leave the current environment and robot intact');
 
   await page.locator('#envUrl').fill(`${base}/tests/fixtures/environment-y-up-cm.usda`);
@@ -204,7 +204,7 @@ with zipfile.ZipFile(sys.argv[1]) as original, zipfile.ZipFile(sys.argv[2]) as d
   check('Y-up centimetre stage is converted to metres, visibility/purpose/default prim respected, floor click places robot');
 
   await page.goto(`${base}/?sample=panthera-ht&environment=astera`, { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => window.__environmentDebug?.().environment?.meshes === 13323
+  await page.waitForFunction(() => window.__environmentDebug?.().environment?.meshes === 13339
     && window.__environmentDebug?.().robot?.includes('panthera'));
   const defaultPose = (await debug()).placement;
   assert.deepEqual(defaultPose, { x: 2.678, y: 4.525414, z: 0, yaw: 0 });
