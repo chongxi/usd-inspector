@@ -47,15 +47,15 @@ try {
   await page.waitForFunction(() => window.__environmentDebug?.().environment
     && window.__environmentDebug?.().robot?.includes('kakun'));
   const initial = await debug();
-  assert.equal(initial.environment.meshes, 13339);
-  assert.equal(initial.environment.textureCount, 17);
+  assert.equal(initial.environment.meshes, 13305);
+  assert.equal(initial.environment.textureCount, 19);
   assert.ok(initial.environment.drawMeshes < initial.environment.meshes / 5);
   assert.equal(initial.placement.x, 6);
   assert.equal(initial.placement.y, -4.3);
   assert.ok(Math.abs(initial.placement.yaw - Math.PI / 2) < 1e-6);
   assert.equal(initial.wheelCount, 2);
   report.initial = initial;
-  check('Astera USDZ and Kakun load together with all 17 textures and share-link placement');
+  check('Astera USDZ and Kakun load together with all 19 textures and share-link placement');
   assert.deepEqual(await page.locator('#inspector [data-pane]').evaluateAll(tabs => tabs.map(t => t.dataset.pane)),
     ['props', 'joints', 'reach', 'env', 'checks']);
   assert.equal(await page.locator('#inspector #pane-env').isVisible(), true);
@@ -84,11 +84,11 @@ try {
   execFileSync('python3', ['-c', `import sys, zipfile
 with zipfile.ZipFile(sys.argv[1]) as original, zipfile.ZipFile(sys.argv[2]) as downloaded:
     assert set(original.namelist()) == set(downloaded.namelist())
-    assert len(original.namelist()) == 18
+    assert len(original.namelist()) == 20
     for name in original.namelist():
         assert original.read(name) == downloaded.read(name), name
 `, asset, path.join(evidence, 'astera_office_2f_usd.zip')]);
-  check('Environment USDZ download is byte-identical; USD ZIP preserves the USD and all 17 textures');
+  check('Environment USDZ download is byte-identical; USD ZIP preserves the USD and all 19 textures');
 
   await page.locator('#driveEnable').check();
   const before = await robotPose();
@@ -179,15 +179,15 @@ with zipfile.ZipFile(sys.argv[1]) as original, zipfile.ZipFile(sys.argv[2]) as d
   assert.equal((await debug()).environment, null);
   assert.ok((await debug()).robot.includes('worker'));
   await page.locator('#envFile').setInputFiles(path.join(root, 'samples/environments/astera_office_2f.usdz'));
-  await page.waitForFunction(() => window.__environmentDebug?.().environment?.meshes === 13339);
-  assert.equal((await debug()).environment.textureCount, 17);
+  await page.waitForFunction(() => window.__environmentDebug?.().environment?.meshes === 13305);
+  assert.equal((await debug()).environment.textureCount, 19);
   assert.equal(await page.locator('#shareBtn').isVisible(), false);
   check('Local USDZ opens with embedded textures, keeps robot, and never offers a broken share link');
 
   await page.locator('#envUrl').fill(`${base}/missing-scene.usdz`);
   await page.locator('#envLoadUrl').click();
   await page.waitForFunction(() => document.querySelector('#envStatus').hasAttribute('data-error'));
-  assert.equal((await debug()).environment.meshes, 13339);
+  assert.equal((await debug()).environment.meshes, 13305);
   check('Failed environment loads leave the current environment and robot intact');
 
   await page.locator('#envUrl').fill(`${base}/tests/fixtures/environment-y-up-cm.usda`);
@@ -204,7 +204,7 @@ with zipfile.ZipFile(sys.argv[1]) as original, zipfile.ZipFile(sys.argv[2]) as d
   check('Y-up centimetre stage is converted to metres, visibility/purpose/default prim respected, floor click places robot');
 
   await page.goto(`${base}/?sample=panthera-ht&environment=astera`, { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => window.__environmentDebug?.().environment?.meshes === 13339
+  await page.waitForFunction(() => window.__environmentDebug?.().environment?.meshes === 13305
     && window.__environmentDebug?.().robot?.includes('panthera'));
   const defaultPose = (await debug()).placement;
   assert.deepEqual(defaultPose, { x: 2.678, y: 4.525414, z: 0, yaw: 0 });

@@ -37,7 +37,7 @@ With `WEBGL_multi_draw` deliberately disabled, the spatial-instancing fallback m
 
 The shadow correctness fixture matched full shadow recomputation pixel for pixel at all four robot poses and after moving a static wall. Browser checks cover downloads, driving, joints, Reach, robot switching, placement, ceiling visibility, Photo-mode convergence, and resource disposal. Detailed JSON reports and screenshots are saved under the invoking workspace's `results/usd_inspector_performance/` directory; they are regenerable evidence, not runtime dependencies.
 
-The unchanged downloadable USDZ has SHA-256 `73cc87c4fbbee7cce173621b4f5d0cd4c51d23bc6da6012d4f3d28f41dfba04d`.
+The benchmark used the asset at commit `9120f0d`, before later prop revisions, with SHA-256 `73cc87c4fbbee7cce173621b4f5d0cd4c51d23bc6da6012d4f3d28f41dfba04d`.
 
 ## Reproduce
 

@@ -73,7 +73,7 @@ async function measure(name, duration=6000) {
 try {
  const start=Date.now();
  await page.goto(url+'?sample=kakun&environment=astera&pose=6,-4.3,0,90',{waitUntil:'domcontentloaded'});
- await page.waitForFunction(()=>window.__environmentDebug?.().environment?.meshes===13339 && window.__environmentDebug?.().robot?.includes('kakun'));
+ await page.waitForFunction(()=>window.__environmentDebug?.().environment?.meshes===13305 && window.__environmentDebug?.().robot?.includes('kakun'));
  report.loadSeconds=(Date.now()-start)/1000;
  report.device=await page.evaluate(()=>{const gl=__perf.renderer.getContext(),e=gl.getExtension('WEBGL_debug_renderer_info');return {renderer:e?gl.getParameter(e.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER),pixelRatio:__perf.renderer.getPixelRatio(),timerQueries:!!gl.getExtension('EXT_disjoint_timer_query_webgl2')};});
  console.log('LOADED',report.loadSeconds,report.device);

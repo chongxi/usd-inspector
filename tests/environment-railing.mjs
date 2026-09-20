@@ -56,7 +56,7 @@ try {
   });
   await page.addInitScript(()=>localStorage.setItem('environmentQuality','interactive'));
   await page.goto(url+'?sample=kakun&environment=astera', {waitUntil:'domcontentloaded'});
-  await page.waitForFunction(()=>window.__environmentDebug?.().environment?.meshes===13339, null, {timeout:180000});
+  await page.waitForFunction(()=>window.__environmentDebug?.().environment?.meshes===13305, null, {timeout:180000});
   const parts=await page.evaluate(()=>window.__railingSnapshot());
   const column=parts['/World/Objects/office_column_03/Geometry/shaft'];
   const foot=parts['/World/Objects/office_stair_guard_east/Geometry/post_0_foot'];

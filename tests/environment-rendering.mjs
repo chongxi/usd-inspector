@@ -24,7 +24,7 @@ async function converge() {
 }
 try {
   await page.goto(url + '?sample=kakun&environment=astera', {waitUntil: 'domcontentloaded'});
-  await page.waitForFunction(() => window.__environmentDebug?.().environment?.meshes === 13339);
+  await page.waitForFunction(() => window.__environmentDebug?.().environment?.meshes === 13305);
   await page.waitForTimeout(1000);
   const realtime = await state();
   assert.equal(realtime.quality, 'interactive');
