@@ -1,7 +1,7 @@
 import { advanceDrive, wheelIncrement, parsePlacement } from './workspace-math.js';
 import { batchEnvironment, disposeEnvironment } from './environment-renderer.js?v=20260919-perf';
 
-const ASTERA = 'samples/environments/astera_office_2f.usdz?v=20260920-bins';
+const ASTERA = 'samples/environments/astera_office_2f.usdz?v=20260920-bins4cm';
 const DEFAULT_SPAWN = { x: 2.678, y: 4.525414, z: 0, yaw: 0 };
 
 /** Independent environment and robot placement. Browser kinematics, no physics host. */
