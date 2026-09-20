@@ -4,8 +4,8 @@
 
 - Source project: `Kakun_Curobov2`
 - Source scene: `environments/astera_office_2f/astera_office_2f.usdz`
-- Size: 29,018,918 bytes
-- SHA-256: `1f63e0aa81b4026b8ddc9fef0a504d67efa9440cc7aaabfcc330c6a666674587`
+- Size: 29,025,471 bytes
+- SHA-256: `84a6cc85977e326531588f45038d0f7cb556465b04d7a3a01541b18f5d1e32a1`
 - Contents: one composed binary USD and 19 textures, with all asset paths contained in the package.
 
 This copy is byte-for-byte identical to the standalone export. It preserves authored geometry, transforms, materials, appliance articulations and physics metadata. The browser renders 13,305 visible geometry parts from the default-prim subtree and displays objects at their authored pose; it does not simulate those physics or operate environment joints. Browser instancing and ceiling visibility are presentation choices and do not rewrite the USDZ.
@@ -16,4 +16,6 @@ The 2026-09-19 revision restores the short office stair guard ahead of the colum
 
 The source project now uses the same standalone USDZ directly in Isaac Lab. Its previous source layers, HTML review and dated exports have been retired; this repository retains the identical archive for web hosting.
 
-The 2026-09-20 prop revision replaces only the office stair trash/recycle station. Its depth is calibrated to the owner’s revised constraint: the painted front panel projects 4.0 cm beyond the adjacent column shaft, with its back plane and column-side end retained. This gives a depth of 32.12 cm, superseding the earlier 31 cm value. Its estimated total width/height remain 79.0/70.3 cm. Two rounded openings lead to separate full-depth liners with static triangle-mesh collisions and category targets. The 3,460-triangle reconstructed asset retains a shared metallic top, white shells and readable sorting labels. All other scene prims, original textures and appliance physics remain unchanged.
+The 2026-09-20 prop revision replaces only the office stair trash/recycle station. Its depth is calibrated to the owner’s revised constraint: the painted front panel projects 4.0 cm beyond the protruding column base, with its back plane and column-side end retained. This gives a depth of 33.15 cm, superseding both the earlier 31 cm value and the incorrect shaft-based 32.12 cm calibration. Its estimated total width/height remain 79.0/70.3 cm. Two rounded openings lead to separate full-depth liners with static triangle-mesh collisions and category targets. The 3,460-triangle reconstructed asset retains a shared metallic top, white shells and readable sorting labels. All other scene prims, original textures and appliance physics remain unchanged.
+
+The bin front collision triangles are verified 4.0 cm ahead of `/World/Objects/office_column_03/Geometry/base`, with 50 CPU collision rays at 4, 9, 20, 40 and 60 cm height. This is asset validation, not a robot avoidance-policy run.
