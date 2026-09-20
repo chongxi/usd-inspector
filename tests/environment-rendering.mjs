@@ -25,9 +25,16 @@ async function converge() {
 try {
   await page.goto(url + '?sample=kakun&environment=astera', {waitUntil: 'domcontentloaded'});
   await page.waitForFunction(() => window.__environmentDebug?.().environment?.meshes === 13339);
+  await page.waitForTimeout(1000);
+  const realtime = await state();
+  assert.equal(realtime.quality, 'interactive');
+  assert.equal(realtime.pathTracing.samples, 0);
+  assert.equal(realtime.pathTracing.busy, false);
+  check('Default real-time mode keeps all authored lights and never starts path tracing');
+  await page.locator('#envQuality').selectOption('realistic');
   const initial = await converge();
   assert.equal(initial.authoredLights, 30); assert.equal(initial.ao, true);
-  check('Real USDZ lights, shadow rendering, worker BVH and progressive rendering initialize');
+  check('Explicit photo mode builds exact geometry and progressive lighting on demand');
   await page.screenshot({path: output + '/realistic-kakun.png'});
 
   await page.locator('#driveEnable').check();
@@ -44,6 +51,11 @@ try {
   const ceiling = await converge();
   assert.ok(ceiling.pathTracing.geometryVersion > moved.pathTracing.geometryVersion);
   check('Changing ceiling visibility rebuilds the ray-traced geometry');
+  await page.locator('#envQuality').selectOption('high');
+  const high = await state();
+  assert.equal(high.quality, 'high'); assert.equal(high.pathTracing.mode, 'interactive');
+  assert.equal(high.pathTracing.ready, false);
+  check('High detail keeps real-time rendering and releases photo-mode resources');
   await page.locator('#envQuality').selectOption('interactive');
   assert.equal((await state()).pathTracing.mode, 'interactive');
   await page.locator('#envQuality').selectOption('realistic');

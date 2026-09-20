@@ -4,7 +4,8 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { createEnvironmentPathTracer } from './environment-pathtracer.js';
+import { createEnvironmentPathTracer } from './environment-pathtracer.js?v=20260919-perf';
+import { createEnvironmentShadowCache } from './environment-shadow-cache.js';
 
 /** Scene lighting in metres. Owns preview resources, never changes downloadable USD. */
 export function createEnvironmentLighting({ scene, renderer, camera, getRobot, requestRender, interactionActive }) {
@@ -14,7 +15,10 @@ export function createEnvironmentLighting({ scene, renderer, camera, getRobot, r
   const group = new THREE.Group(); group.name = 'EnvironmentLighting';
   const size = new THREE.Vector2();
   let active = false, root = null, composer = null, ao = null;
-  let panels = [], shadows = [], selection = '', pose = '', lightCount = 0;
+  let panels = [], shadows = [], selection = '', lightCount = 0;
+  let quality = 'interactive', shadowsDirty = true;
+  const shadowCache = createEnvironmentShadowCache(renderer, scene, getRobot);
+  const viewportSize = new THREE.Vector2();
   const lightScale = 1 / 1500;
   const pathTracer = createEnvironmentPathTracer({ scene, renderer, camera, getRobot, requestRender, interactionActive,
     getNormals: () => ao.normalRenderTarget.texture,
@@ -31,9 +35,14 @@ export function createEnvironmentLighting({ scene, renderer, camera, getRobot, r
     composer = new EffectComposer(renderer, target);
     composer.addPass(new RenderPass(scene, camera));
     ao = new GTAOPass(scene, camera, 1, 1);
+    const resizeAO = ao.setSize.bind(ao);
+    ao.setSize = (width, height) => {
+      const scale = quality === 'interactive' ? 0.5 : 1;
+      resizeAO(Math.max(1, Math.round(width * scale)), Math.max(1, Math.round(height * scale)));
+    };
     ao.updateGtaoMaterial({ radius: 0.25, thickness: 0.1, distanceExponent: 1,
-      distanceFallOff: 1, samples: 32, screenSpaceRadius: false });
-    ao.updatePdMaterial({ radius: 8, samples: 32 });
+      distanceFallOff: 1, samples: quality === 'interactive' ? 16 : 32, screenSpaceRadius: false });
+    ao.updatePdMaterial({ radius: 8, samples: quality === 'interactive' ? 16 : 32 });
     ao.blendIntensity = 0.65;
     // Glass should reveal the room behind it, including that room's contacts.
     const original = ao._overrideVisibility.bind(ao);
@@ -52,11 +61,14 @@ export function createEnvironmentLighting({ scene, renderer, camera, getRobot, r
 
   function clear() {
     active = false;
+    shadowCache.clear(); shadowsDirty = true;
     group.removeFromParent();
     for (const light of shadows) { light.shadow.map?.dispose(); light.shadow.mapPass?.dispose(); }
-    group.clear(); panels = []; shadows = []; selection = ''; pose = '';
+    group.clear(); panels = []; shadows = []; selection = '';
     root = null;
     pathTracer.reset();
+    if (composer) { for (const pass of composer.passes) pass.dispose?.(); composer.dispose(); }
+    composer = null; ao = null; size.set(0, 0);
     for (const {light, visible} of studio.lights) light.visible = visible;
     scene.background = studio.background; scene.environment = studio.environment; scene.environmentIntensity = studio.intensity;
     renderer.toneMapping = studio.toneMapping; renderer.toneMappingExposure = studio.exposure;
@@ -126,12 +138,13 @@ export function createEnvironmentLighting({ scene, renderer, camera, getRobot, r
     }
     scene.add(group);
     prepareComposer();
-    updateShadows();
+    shadowsDirty = true;
   }
 
   function updateShadows() {
     const nearest = [...panels].sort((a, b) => a.position.distanceToSquared(camera.position)
-      - b.position.distanceToSquared(camera.position)).slice(0, shadows.length);
+      - b.position.distanceToSquared(camera.position)).slice(0, shadows.length)
+      .sort((a, b) => a.uuid.localeCompare(b.uuid));
     const key = nearest.map(p => p.uuid).join(',');
     if (key !== selection) {
       for (const light of panels) light.intensity = light.userData.luminance;
@@ -144,30 +157,41 @@ export function createEnvironmentLighting({ scene, renderer, camera, getRobot, r
         light.target.position.copy(panel.position).add(new THREE.Vector3(0, 0, -1).applyQuaternion(panel.quaternion));
         light.shadow.needsUpdate = true;
       });
-      selection = key;
+      selection = key; shadowsDirty = true;
     }
-    const robot = getRobot();
-    const current = robot ? [robot.name, ...robot.base.matrixWorld.elements,
-      ...robot.jdefs.map(d => robot.robot.getJointValue(d.path))].join(',') : '';
-    if (current !== pose) {
-      for (const light of shadows) light.shadow.needsUpdate = true;
-      pose = current;
-    }
+    shadowCache.update(shadows, camera, shadowsDirty);
+    shadowsDirty = false;
   }
 
   function renderRaster() {
     updateShadows();
-    const next = renderer.getSize(new THREE.Vector2());
+    const next = renderer.getSize(viewportSize);
     if (!size.equals(next)) {
-      size.copy(next); composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(size.x, size.y);
+      size.copy(next);
+      const ratio = quality === 'interactive'
+        ? Math.min(renderer.getPixelRatio(), 1.5, Math.sqrt(1920 * 1080 / (size.x * size.y)))
+        : renderer.getPixelRatio();
+      composer.setPixelRatio(ratio); composer.setSize(size.x, size.y);
     }
     composer.render();
   }
-  return { get active() { return active; }, render: () => {
+  return { supportsMultiDraw: renderer.extensions.has('WEBGL_multi_draw'), get active() { return active; }, render: () => {
       scene.updateMatrixWorld(); camera.updateMatrixWorld();
       if (!pathTracer.render()) renderRaster();
-    }, setEnvironment, clear, setQuality: pathTracer.setMode,
-    refresh: () => { for (const light of shadows) light.shadow.needsUpdate = true; pathTracer.reset(); },
+    }, setEnvironment, clear, setQuality(value) {
+      quality = value;
+      pathTracer.setMode(value === 'realistic' ? 'realistic' : 'interactive');
+      if (ao) {
+        const samples = quality === 'interactive' ? 16 : 32;
+        ao.updateGtaoMaterial({ samples }); ao.updatePdMaterial({ samples });
+        size.set(0, 0);
+      }
+      const label = document.querySelector('#envRenderStatus');
+      if (label && value !== 'realistic') label.textContent = value === 'high'
+        ? 'Real-time · full detail and contact shadows' : 'Real-time · materials and contact shadows';
+      requestRender();
+    },
+    refresh: () => { shadowsDirty = true; pathTracer.reset(); },
     debug: () => ({ active, authoredLights: lightCount, shadowLights: shadows.length,
-      ao: !!ao, exposure: renderer.toneMappingExposure, lightScale, pathTracing: pathTracer.debug() }) };
+      ao: !!ao, quality, aoResolution: ao ? [ao.width, ao.height] : null, shadowCache: shadowCache.debug(), exposure: renderer.toneMappingExposure, lightScale, pathTracing: pathTracer.debug() }) };
 }

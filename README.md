@@ -26,8 +26,11 @@ The Inspector tabs are **Properties · Joints · Reach · Env · Checks**. Envir
 
 Environment previews use the USD’s authored light positions, shapes and linear RGB/color temperatures, PBR textures, ACES tone mapping, contact occlusion, and shadow-casting geometry. The **Rendering** selector in Env offers:
 
-- **Realistic** (default): moving the camera or robot uses interactive lighting. Once still, a browser path tracer refines reflections, area-light shadows and indirect lighting, with edge-aware denoising. The progress indicator shows convergence. Initial preparation and convergence depend on scene size and GPU. Inspection overlays such as Reach, collision, wireframe and section views use interactive rendering so the tools stay visible.
-- **Interactive**: immediate shadowed rendering, suited to driving and slower devices. The selection is remembered locally. Unsupported path-tracing devices retain interactive rendering.
+- **Real-time · balanced** (default): PBR materials, all authored lights, four cached shadow maps, antialiasing and half-resolution contact shadows. Moving robots update their own shadows at frame rate; static furniture is reused. The 3D pixel budget is capped for Retina/4K screens; UI text remains sharp.
+- **Real-time · high detail**: full-resolution contact shadows and the display's pixel ratio, using the same batching and cached shadows. Both real-time modes render on demand and stop GPU work when idle.
+- **Photo · path traced**: explicitly starts progressive reflections, indirect lighting and denoising once still. The path-tracing module and worker load only when selected; returning to real-time releases them. Photo mode is never restored automatically on page load. Inspection overlays use raster rendering to remain visible.
+
+Opaque geometry uses material batches with per-instance camera/shadow culling; devices without `WEBGL_multi_draw` use spatial GPU instancing. The original meshes, transforms, glass, materials and textures are retained. See [renderer design, measurements and reproduction](docs/rendering-performance.md).
 
 The same standalone Astera USDZ is used in Isaac Lab and here. This browser renderer does not use Isaac’s RTX renderer or denoiser; lighting and reflection results can differ. Preview settings never change geometry, physics, articulation, or downloaded files.
 
@@ -54,7 +57,7 @@ The vendored path tracer and its same-origin BVH worker can be rebuilt with `npm
 
 This is a browser kinematic preview. Environment geometry is static at its authored pose: appliance doors, drawers and loose objects are displayed but are not interactive here. There is no environment collision response, physical grasping, gravity, or connection to Isaac Lab. Existing Reach checks concern the robot and its support plane; they do not plan around office furniture. The USDZ retains its original joints and physics for use in a simulator. Robot downloads and motion exports still refer to the selected robot, not a merged robot/environment stage.
 
-Environment loading uses the USD default-prim subtree, including visible collision-enabled geometry, metres-per-unit, up-axis and embedded textures. Identical opaque meshes are instanced to reduce draw calls. Materials use the inspector's three.js lighting; authored Isaac/MDL lighting is not reproduced exactly. The bundled USD reader supports a subset of OpenUSD. For reliable local sharing, use a self-contained USDZ; a loose local USD with external files requires packaging first.
+Environment loading uses the USD default-prim subtree, including visible collision-enabled geometry, metres-per-unit, up-axis and embedded textures. Opaque meshes are batched by material and culled per instance, with a spatial-instancing fallback. Materials use the inspector's three.js lighting; authored Isaac/MDL lighting is not reproduced exactly. The bundled USD reader supports a subset of OpenUSD. For reliable local sharing, use a self-contained USDZ; a loose local USD with external files requires packaging first.
 
 ## Run locally and test
 

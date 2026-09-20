@@ -39,8 +39,9 @@ try {
           mesh.userData.members.forEach((path,index)=>{
             if(!/office_column_03|office_stair_guard_east/.test(path))return;
             const matrix=mesh.matrixWorld.clone();
-            if(mesh.isInstancedMesh){const instance=new v.Matrix4();mesh.getMatrixAt(index,instance);matrix.multiply(instance);}
-            const box=mesh.geometry.boundingBox.clone().applyMatrix4(matrix);
+            if(mesh.isInstancedMesh||mesh.isBatchedMesh){const instance=new v.Matrix4();mesh.getMatrixAt(index,instance);matrix.multiply(instance);}
+            const bounds=mesh.isBatchedMesh ? mesh.getBoundingBoxAt(mesh.getGeometryIdAt(index),new v.Box3()) : mesh.geometry.boundingBox;
+            const box=bounds.clone().applyMatrix4(matrix);
             result[path]={min:box.min.toArray(),max:box.max.toArray()};
           });
         });

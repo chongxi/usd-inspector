@@ -1,5 +1,5 @@
 import { advanceDrive, wheelIncrement, parsePlacement } from './workspace-math.js';
-import { batchEnvironment, disposeEnvironment } from './environment-renderer.js';
+import { batchEnvironment, disposeEnvironment } from './environment-renderer.js?v=20260919-perf';
 
 const ASTERA = 'samples/environments/astera_office_2f.usdz?v=20260919-railing';
 const DEFAULT_SPAWN = { x: 2.678, y: 4.525414, z: 0, yaw: 0 };
@@ -17,8 +17,8 @@ export function createEnvironmentWorkspace(api) {
     <p class="workspace-status" id="envStatus" role="status" aria-live="polite">No environment. Choose Astera or open your own USDZ.</p>
     <div class="workspace-actions"><button class="btn sm" id="envOverview" disabled>View environment</button><button class="btn sm" id="envRemove" disabled>Remove environment</button></div>
     <label class="workspace-check"><input type="checkbox" id="envCeiling"> Show ceiling and overhead lights</label>
-    <label class="workspace-quality">Rendering <select id="envQuality"><option value="realistic">Realistic · refines when still</option><option value="interactive">Interactive · faster</option></select></label>
-    <p id="envRenderStatus" role="status">Realistic lighting refines after you stop moving.</p>
+    <label class="workspace-quality">Rendering <select id="envQuality"><option value="interactive">Real-time · balanced</option><option value="high">Real-time · high detail</option><option value="realistic">Photo · path traced</option></select></label>
+    <p id="envRenderStatus" role="status">Real-time lighting, materials and contact shadows.</p>
     <fieldset><legend>Download environment · no robot</legend>
       <div class="workspace-actions"><button class="btn sm" id="envDownloadUsdz">USDZ · single file</button><button class="btn sm" id="envDownloadUsd">USD + textures · ZIP</button></div>
       <p id="envDownloadNote" role="status">Astera office. Downloads also work before loading the scene.</p>
@@ -236,7 +236,7 @@ export function createEnvironmentWorkspace(api) {
       if (token !== loadToken) { disposeEnvironment(loaded); return; }
       status('Preparing environment instances…');
       await new Promise(resolve => setTimeout(resolve, 20));
-      const candidate = batchEnvironment(THREE, loaded);
+      const candidate = batchEnvironment(THREE, loaded, { multiDraw: api.lighting.supportsMultiDraw });
       if (token !== loadToken) { disposeEnvironment(candidate.root); return; }
       if (environment) disposeEnvironment(environment.root);
       environment = { ...candidate, name, warnings: loaded.userData.warnings || [],
@@ -333,11 +333,12 @@ export function createEnvironmentWorkspace(api) {
   $('#envDownloadUsdz').onclick = () => downloadEnvironment('original');
   $('#envDownloadUsd').onclick = () => downloadEnvironment('usd');
   $('#envCeiling').onchange = showCeiling;
-  try { if (localStorage.getItem('environmentQuality') === 'interactive') $('#envQuality').value = 'interactive'; } catch {}
+  try { const quality = localStorage.getItem('environmentQualityV2');
+    if (['interactive', 'high'].includes(quality)) $('#envQuality').value = quality; } catch {}
   api.lighting.setQuality($('#envQuality').value);
   $('#envQuality').onchange = () => {
     api.lighting.setQuality($('#envQuality').value);
-    try { localStorage.setItem('environmentQuality', $('#envQuality').value); } catch {}
+    try { localStorage.setItem('environmentQualityV2', $('#envQuality').value); } catch {}
   };
   $('#envOverview').onclick = () => {
     const box = new THREE.Box3().setFromObject(environment.root);
@@ -366,8 +367,9 @@ export function createEnvironmentWorkspace(api) {
       .find(hit => {
         if (!hit.face) return false;
         const matrix = hit.object.matrixWorld.clone();
-        if (hit.instanceId !== undefined) {
-          const instance = new THREE.Matrix4(); hit.object.getMatrixAt(hit.instanceId, instance); matrix.multiply(instance);
+        const instanceId = hit.instanceId ?? hit.batchId;
+        if (instanceId !== undefined) {
+          const instance = new THREE.Matrix4(); hit.object.getMatrixAt(instanceId, instance); matrix.multiply(instance);
         }
         return hit.face.normal.clone().applyMatrix3(new THREE.Matrix3().getNormalMatrix(matrix)).normalize().z > 0.5;
       });

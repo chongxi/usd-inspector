@@ -8,7 +8,9 @@
     "serve": "python3 -m http.server 8088",
     "build:renderer": "node tools/build-renderer.mjs",
     "test:rendering": "node tests/environment-rendering.mjs",
-    "test:railing": "node tests/environment-railing.mjs"
+    "test:railing": "node tests/environment-railing.mjs",
+    "test:performance": "node tests/environment-performance.mjs",
+    "test:shadows": "node tests/environment-shadow-cache.mjs"
   },
   "devDependencies": {
     "esbuild": "0.25.10",

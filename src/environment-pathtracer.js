@@ -1,13 +1,12 @@
 import * as THREE from 'three';
 import { createEnvironmentDenoiser } from './environment-denoiser.js';
-import { WebGLPathTracer, GradientEquirectTexture, GenerateMeshBVHWorker } from './vendor/pathtracer.js';
 
 /** Progressive still views. Snapshots share source meshes/textures; never edit USD assets. */
 export function createEnvironmentPathTracer({ renderer, camera, requestRender, rasterize, getRobot,
   scene, getRoot, getLights, getBackground, getNormals, interactionActive, status }) {
   let tracer = null, worker = null, snapshot = null, environment = null, denoise = null;
   let ready = false, busy = false, version = 0, geometryVersion = 0, builtVersion = -1;
-  let cameraKey = '', robotKey = '', settledAt = 0, failure = '', mode = 'realistic';
+  let cameraKey = '', robotKey = '', settledAt = 0, failure = '', mode = 'interactive';
   let robotRecords = [], model = null;
   let guideDirty = true;
   const maxSamples = 192;
@@ -58,6 +57,9 @@ export function createEnvironmentPathTracer({ renderer, camera, requestRender, r
     if (token !== version || !getRoot()) { busy = false; dispose(); requestRender(); return; }
     try {
       if (!tracer) {
+        const { WebGLPathTracer, GradientEquirectTexture, GenerateMeshBVHWorker }
+          = await import('./vendor/pathtracer.js');
+        if (token !== version || mode !== 'realistic' || !getRoot()) return;
         snapshot = new THREE.Scene();
         snapshot.background = getBackground()?.clone() || new THREE.Color('#20262a');
         environment = new GradientEquirectTexture(64);
@@ -66,7 +68,11 @@ export function createEnvironmentPathTracer({ renderer, camera, requestRender, r
         getRoot().updateMatrixWorld(true);
         getRoot().traverseVisible(object => {
           if (!object.isMesh) return;
-          if (object.isInstancedMesh) {
+          if (object.isBatchedMesh && object.userData.batchSources) {
+            for (const member of object.userData.batchSources) {
+              addMesh(member, new THREE.Matrix4().multiplyMatrices(object.matrixWorld, member.matrix));
+            }
+          } else if (object.isInstancedMesh) {
             const matrix = new THREE.Matrix4();
             for (let i = 0; i < object.count; i++) {
               object.getMatrixAt(i, matrix); matrix.premultiply(object.matrixWorld); addMesh(object, matrix);
@@ -144,6 +150,6 @@ export function createEnvironmentPathTracer({ renderer, camera, requestRender, r
   }
   return { render, reset,
     setMode(value) { mode = value; if (value === 'realistic') { failure = ''; settledAt = performance.now(); }
-      else status('Interactive lighting'); requestRender(); },
+      else { reset(); status('Real-time lighting'); } requestRender(); },
     debug: () => ({ mode, ready, busy, samples: tracer?.samples || 0, failure, builtVersion, geometryVersion }) };
 }
